@@ -21,7 +21,7 @@ type HistoryItem = {
 }
 
 export default function SongGenerator() {
-  const [genre, setGenre] = useState('rap')
+  const [genre, setGenre] = useState('')
   const [mood, setMood] = useState('happy')
   const [theme, setTheme] = useState('')
   const [generatedText, setGeneratedText] = useState('')
@@ -43,8 +43,14 @@ export default function SongGenerator() {
   ]
 
   const generateSong = async () => {
-    if (!theme.trim()) return
+    // Проверяем наличие темы и жанра
+    if (!theme.trim() || !genre) {
+      console.error('Не выбран жанр или не указана тема');
+      return;
+    }
+
     setIsGenerating(true)
+    console.log(`Generating song with genre: ${genre}, mood: ${mood}, theme: ${theme}`);
 
     try {
       // Вызов API для генерации текста
@@ -132,13 +138,27 @@ export default function SongGenerator() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Жанр</Label>
-                <Select value={genre} onValueChange={setGenre}>
+                <Select
+                  value={genre}
+                  onValueChange={(value) => {
+                    console.log(`Page setting genre to: ${value}`);
+                    setGenre(value);
+                  }}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Выберите жанр" />
+                    <SelectValue
+                      placeholder="Выберите жанр"
+                      value={genres.find(g => g.value === genre)?.label || genre}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {genres.map((g) => (
-                      <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                      <SelectItem
+                        key={g.value}
+                        value={g.value}
+                      >
+                        {g.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -169,7 +189,7 @@ export default function SongGenerator() {
 
             <Button
               onClick={generateSong}
-              disabled={isGenerating || !theme.trim()}
+              disabled={isGenerating || !theme.trim() || !genre}
               className="w-full"
             >
               {isGenerating ? 'Генерация...' : 'Сгенерировать текст'}

@@ -18,12 +18,13 @@ export function Select({
 }: SelectProps) {
   const [open, setOpen] = React.useState(false)
 
+  // Создаем ref для компонента
+  const selectRef = React.useRef<HTMLDivElement>(null);
+
   // Добавляем обработчик клика вне компонента для закрытия выпадающего списка
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const selectElement = document.querySelector('.select-container');
-      if (selectElement && !selectElement.contains(target)) {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
@@ -34,13 +35,24 @@ export function Select({
     };
   }, []);
 
+  // Создаем обработчик изменения значения
+  const handleValueChange = React.useCallback((newValue: string) => {
+    console.log(`Select received new value: ${newValue}`);
+    onValueChange(newValue);
+  }, [onValueChange]);
+
   return (
-    <div className={`relative select-container ${className}`} {...props}>
+    <div
+      className={`relative select-container ${className}`}
+      ref={selectRef}
+      data-current-value={value} // Добавляем атрибут для отладки
+      {...props}
+    >
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           return React.cloneElement(child as React.ReactElement<any>, {
             value,
-            onValueChange,
+            onValueChange: handleValueChange,
             open,
             setOpen
           })
@@ -133,21 +145,27 @@ export function SelectItem({
   setOpen,
   ...props
 }: SelectItemProps) {
-  // Улучшенный обработчик клика
+  // Полностью переработанный обработчик клика
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
-    // Добавляем задержку для более надежного срабатывания
-    setTimeout(() => {
-      console.log(`Selecting value: ${value}`)
-      if (onValueChange) {
-        onValueChange(value)
-      }
-      if (setOpen) {
-        setOpen(false)
-      }
-    }, 10);
+    // Немедленно вызываем функцию изменения значения
+    console.log(`Selecting value: ${value}`)
+    if (onValueChange) {
+      // Принудительно вызываем функцию обновления значения
+      onValueChange(value)
+
+      // Для отладки добавим дополнительный вывод
+      console.log(`Value should be updated to: ${value}`)
+    } else {
+      console.warn('onValueChange is not provided to SelectItem')
+    }
+
+    // Закрываем выпадающий список
+    if (setOpen) {
+      setOpen(false)
+    }
   }
 
   // Добавляем обработчик нажатия клавиши Enter
@@ -166,6 +184,7 @@ export function SelectItem({
       role="option"
       aria-selected={false}
       tabIndex={0}
+      data-value={value} // Добавляем атрибут для отладки
       {...props}
     >
       {children}
@@ -187,9 +206,32 @@ export function SelectValue({
   children,
   ...props
 }: SelectValueProps) {
+  // Находим соответствующую метку для значения
+  const [displayText, setDisplayText] = React.useState<React.ReactNode>(children || value || placeholder);
+
+  // Обновляем отображаемый текст при изменении значения
+  React.useEffect(() => {
+    // Если есть дети, используем их
+    if (children) {
+      setDisplayText(children);
+    }
+    // Иначе используем значение или плейсхолдер
+    else if (value) {
+      // Для отладки
+      console.log(`SelectValue displaying value: ${value}`);
+      setDisplayText(value);
+    } else {
+      setDisplayText(placeholder);
+    }
+  }, [children, value, placeholder]);
+
   return (
-    <span className={className} {...props}>
-      {children || value || placeholder}
+    <span
+      className={className}
+      data-value={value} // Для отладки
+      {...props}
+    >
+      {displayText}
     </span>
   )
 }
