@@ -26,16 +26,30 @@ export function HistoryList({ onSelectItem }: HistoryListProps) {
     async function fetchHistory() {
       try {
         setLoading(true)
+
+        // Проверяем, что supabase инициализирован
+        if (!supabase) {
+          console.warn('Supabase client not initialized')
+          setLoading(false)
+          return
+        }
+
         const { data, error } = await supabase
           .from('song_history')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(50)
 
-        if (error) throw error
+        if (error) {
+          console.error('Supabase query error:', error)
+          throw error
+        }
+
         setHistory(data || [])
       } catch (error) {
         console.error('Error fetching history:', error)
+        // В случае ошибки устанавливаем пустой массив
+        setHistory([])
       } finally {
         setLoading(false)
       }
@@ -46,19 +60,29 @@ export function HistoryList({ onSelectItem }: HistoryListProps) {
 
   const updateRating = async (id: string, rating: number) => {
     try {
+      // Проверяем, что supabase инициализирован
+      if (!supabase) {
+        console.warn('Supabase client not initialized')
+        return
+      }
+
       const { error } = await supabase
         .from('song_history')
         .update({ rating })
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase update error:', error)
+        throw error
+      }
 
       // Обновляем локальное состояние
-      setHistory(history.map(item => 
+      setHistory(history.map(item =>
         item.id === id ? { ...item, rating } : item
       ))
     } catch (error) {
       console.error('Error updating rating:', error)
+      // Показываем пользователю сообщение об ошибке (можно добавить компонент уведомления)
     }
   }
 
@@ -73,8 +97,8 @@ export function HistoryList({ onSelectItem }: HistoryListProps) {
   return (
     <div className="space-y-4 max-h-96 overflow-y-auto">
       {history.map((item) => (
-        <div 
-          key={item.id} 
+        <div
+          key={item.id}
           className="p-4 border rounded-md hover:bg-accent/10 cursor-pointer"
           onClick={() => onSelectItem(item)}
         >

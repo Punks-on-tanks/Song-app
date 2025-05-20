@@ -13,18 +13,21 @@ export async function POST(request: Request) {
     // Проверяем наличие API ключа для Hugging Face
     const huggingFaceToken = process.env.HUGGINGFACE_API_TOKEN
 
-    // Если нет ключа или мы в режиме разработки, используем локальную генерацию
-    if (!huggingFaceToken || process.env.NODE_ENV === 'development') {
-      // Локальная генерация текста без API
+    // Если нет ключа или он пустой, используем локальную генерацию
+    if (!huggingFaceToken || huggingFaceToken.trim() === '') {
+      console.log('Using local lyrics generation (no API token)')
       const generatedText = generateLocalLyrics(genre, mood, theme)
       return NextResponse.json({ text: generatedText })
     }
 
     // Вызов Hugging Face Inference API (бесплатный)
     try {
-      // Используем модель для русского языка, например, "IlyaGusev/rugpt3medium_sum_gazeta"
+      console.log('Attempting to use Hugging Face API')
+
+      // Используем модель для русского языка с открытым доступом
+      // Заменяем на модель, которая не требует токена или имеет более широкий доступ
       const response = await fetch(
-        "https://api-inference.huggingface.co/models/IlyaGusev/rugpt3medium_sum_gazeta",
+        "https://api-inference.huggingface.co/models/ai-forever/rugpt3large_based_on_gpt2",
         {
           method: "POST",
           headers: {
@@ -37,7 +40,8 @@ export async function POST(request: Request) {
               max_length: 1000,
               temperature: 0.7,
               top_p: 0.9,
-              do_sample: true
+              do_sample: true,
+              return_full_text: false
             }
           }),
         }
