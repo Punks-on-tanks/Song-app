@@ -17,9 +17,25 @@ export function Select({
   ...props
 }: SelectProps) {
   const [open, setOpen] = React.useState(false)
-  
+
+  // Добавляем обработчик клика вне компонента для закрытия выпадающего списка
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const selectElement = document.querySelector('.select-container');
+      if (selectElement && !selectElement.contains(target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
-    <div className={`relative ${className}`} {...props}>
+    <div className={`relative select-container ${className}`} {...props}>
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           return React.cloneElement(child as React.ReactElement<any>, {
@@ -88,7 +104,7 @@ export function SelectContent({
   ...props
 }: SelectContentProps) {
   if (!open) return null
-  
+
   return (
     <div
       className={`absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg dark:bg-gray-800 dark:border-gray-600 ${className}`}
@@ -117,15 +133,39 @@ export function SelectItem({
   setOpen,
   ...props
 }: SelectItemProps) {
-  const handleClick = () => {
-    onValueChange?.(value)
-    setOpen?.(false)
+  // Улучшенный обработчик клика
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    // Добавляем задержку для более надежного срабатывания
+    setTimeout(() => {
+      console.log(`Selecting value: ${value}`)
+      if (onValueChange) {
+        onValueChange(value)
+      }
+      if (setOpen) {
+        setOpen(false)
+      }
+    }, 10);
   }
-  
+
+  // Добавляем обработчик нажатия клавиши Enter
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleClick(e as unknown as React.MouseEvent)
+    }
+  }
+
   return (
     <div
       className={`px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${className}`}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="option"
+      aria-selected={false}
+      tabIndex={0}
       {...props}
     >
       {children}
